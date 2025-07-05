@@ -21,7 +21,7 @@ async def leave_a_chat(bot, message):
         chat = chat
     try:
         buttons = [[
-            InlineKeyboardButton('Support', url=f'https://t.me/ImSahanSBot')
+            InlineKeyboardButton('Support', url=f'https://t.me/Iron_voldy')
         ]]
         reply_markup=InlineKeyboardMarkup(buttons)
         await bot.send_message(

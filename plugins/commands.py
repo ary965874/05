@@ -45,13 +45,14 @@ async def start(client, message):
             logger.error(f"Failed to send log message: {e}")
     if len(message.command) != 2:
         buttons = [[
-                    InlineKeyboardButton('➕ Add Me To Your Group ➕', url=f'http://t.me/{temp.U_NAME}?startgroup=true')
+                    InlineKeyboardButton('🎬 Search Movies', switch_inline_query_current_chat=''),
+                    InlineKeyboardButton('🎭 Browse Collection', callback_data='collection')
                 ],[
-                    InlineKeyboardButton('🧩 Updates', url='https://t.me/SECL4U'),
-                    InlineKeyboardButton('📚 How To Use', url='https://t.me/SECOfficial_Bot')
+                    InlineKeyboardButton('🔔 Updates Channel', url='https://t.me/c/2614174192/1'),
+                    InlineKeyboardButton('📱 Add to Group', url=f'http://t.me/{temp.U_NAME}?startgroup=true')
                 ],[
-                    InlineKeyboardButton('🛠 Help', callback_data='help'),
-                    InlineKeyboardButton('📞 Contact', callback_data='about')
+                    InlineKeyboardButton('ℹ️ About Bot', callback_data='about'),
+                    InlineKeyboardButton('❓ Help & Support', callback_data='help')
                 ]]
         reply_markup = InlineKeyboardMarkup(buttons)
         await message.reply_photo(

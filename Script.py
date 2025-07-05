@@ -1,9 +1,20 @@
 class script(object):
-    START_TXT = """𝙷𝚎𝚕𝚕𝚊𝚘𝚠 <b>{}</b>, 
-𝙸𝚖 𝚈𝚘𝚞𝚛 𝙵𝚛𝚒𝚎𝚗𝚍𝚕𝚢 <a href=https://t.me/{}>{}</a>.
-    
-- 𝚈𝚘𝚞 𝙲𝚊𝚗 𝙶𝚎𝚝 𝚈𝚘𝚞𝚛 𝙵𝚒𝚕𝚖 𝙰𝚗𝚍 𝚂𝚎𝚛𝚒𝚎𝚜 𝙵𝚒𝚕𝚎𝚜 𝚄𝚜𝚒𝚗𝚐 𝚝𝚑𝚒𝚜 𝚋𝚘𝚝. 
-- 𝙰𝚍𝚍 𝚋𝚘𝚝 𝚝𝚘 𝚈𝚘𝚞𝚛 𝙶𝚛𝚘𝚞𝚙 𝚘𝚛 𝚁𝚎𝚚𝚞𝚎𝚜𝚝 𝙷𝚎𝚛𝚎. 😍"""
+    START_TXT = """🎬 <b>Hey there, {}</b>! 
+
+🤖 I'm <b>{}</b> - Your Personal Movie & Subtitle Bot!
+
+✨ <b>What I Can Do:</b>
+🎥 Search 16,000+ Movies & Series
+🌍 Multi-Language Subtitles (14 Languages)
+⚡ Fast Download Links
+🎭 HD Quality Films
+
+🚀 <b>How to Use:</b>
+1️⃣ Type any movie name
+2️⃣ Select your subtitle language
+3️⃣ Get Movie + Subtitle files instantly!
+
+💡 <b>Pro Tip:</b> Join updates channel for latest movies!"""
 
     
     HELP_TXT = """Hello {}!
@@ -14,12 +25,13 @@ I’м нere тo αѕѕιѕт yoυ! Feel ғree тo αѕĸ ғor αɴy ɢυιdαɴ
 Leт’ѕ мαĸe тнιɴɢѕ eαѕιer ғor yoυ!"""
 
 
-    ABOUT_TXT = """Here αre ѕoмe deтαιlѕ yoυ ɴeed тo ĸɴow.
+    ABOUT_TXT = """Here are some details you need to know.
 
-✯ 𝙱𝙾𝚃 𝚃𝚈𝙿𝙴: 𝙰𝚄𝚃𝙾𝙵𝙸𝙻𝚃𝙴𝚁 𝚅𝟹	
-✯ 𝙲𝚁𝙴𝙰𝚃𝙾𝚁: <a href="https://t.me/ImSahanSBot">𝚂𝚊𝚑𝚊𝚗𝚂</a>
-✯ 𝙳𝙴𝚅𝙴𝙻𝙾𝙿𝙴𝚁: <a href="https://t.me/Hansaka_Anuhas">𝙷𝚊𝚗𝚜𝚊𝚔𝚊</a> 
-✯ 𝚂𝙾𝚄𝚁𝙲𝙴: 𝙿𝚛𝚒𝚟𝚊𝚝𝚎 (ᴅᴍ ᴅᴇᴠᴇʟᴏᴘᴇʀ) """  
+✯ 𝙱𝙾𝚃 𝚃𝚈𝙿𝙴: Movie Bot with Subtitle System
+✯ 𝙳𝙴𝚅𝙴𝙻𝙾𝙿𝙴𝚁: <a href="https://t.me/Iron_voldy">Hasindu Theekshana</a>
+✯ 𝙶𝙸𝚃𝙷𝚄𝙱: <a href="https://github.com/Iron-voldy">Iron-voldy</a> 
+✯ 𝙵𝙴𝙰𝚃𝚄𝚁𝙴𝚂: Movies + Multi-Language Subtitles
+✯ 𝚂𝚄𝙱𝚃𝙸𝚃𝙻𝙴𝚂: 14 Languages Supported """  
 
       
     MANUELFILTER_TXT = """Help: <b>Filters</b>
@@ -158,11 +170,12 @@ Name - {}
     
     
     OWNER_INFO = """
-<b>⍟───[ ᴏᴡɴᴇʀ ᴅᴇᴛᴀɪʟꜱ ]───⍟
+<b>⍟───[ ᴅᴇᴠᴇʟᴏᴘᴇʀ ᴅᴇᴛᴀɪʟꜱ ]───⍟
 ⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯    
-• ꜰᴜʟʟ ɴᴀᴍᴇ : 𝚂𝚊𝚑𝚊𝚗 𝚂𝚊𝚗𝚍𝚊𝚛𝚞𝚠𝚊𝚗
-• ᴀʙᴏᴜᴛ : <a href='https://t.me/About_Sandaruwan'>𝙰𝚋𝚘𝚞𝚝 𝚂𝚊𝚗𝚍𝚊𝚛𝚞𝚠𝚊𝚗</a>
-• ᴅᴍ ʟɪɴᴋ : <a href='https://t.me/Sandaruwan_Feedback_Bot'>𝚂𝚊𝚑𝚊𝚗𝚂</a></b>"""
+• ꜰᴜʟʟ ɴᴀᴍᴇ : Hasindu Theekshana
+• ᴛᴇʟᴇɢʀᴀᴍ : <a href='https://t.me/Iron_voldy'>@Iron_voldy</a>
+• ɢɪᴛʜᴜʙ : <a href='https://github.com/Iron-voldy'>Iron-voldy</a>
+• ᴅᴇᴠᴇʟᴏᴘᴇʀ : Movie Bot with Subtitle System</b>"""
 
     IMDB_TEMPLATE = """
 🎬 <b><a href={url}>{title}</a> ({year})</b>  

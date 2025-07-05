@@ -398,8 +398,8 @@ async def cb_handler(client: Client, query: CallbackQuery):
         )
     elif query.data == "about":
         buttons = [[
-            InlineKeyboardButton('Owner', url='https://t.me/ImSahanSBot'),
-            InlineKeyboardButton('Developer', url='https://t.me/Hansaka_Anuhas')
+            InlineKeyboardButton('Owner', url='https://t.me/Iron_voldy'),
+            InlineKeyboardButton('Developer', url='https://t.me/Iron_voldy')
         ], [
             InlineKeyboardButton('🏠 Hoмe', callback_data='start'),
             InlineKeyboardButton('📊 Sтαтυѕ', callback_data='stats')
@@ -500,10 +500,43 @@ async def cb_handler(client: Client, query: CallbackQuery):
             parse_mode=enums.ParseMode.HTML
         )
 
+    elif query.data == "collection":
+        buttons = [[
+            InlineKeyboardButton('🔍 Search Movies', switch_inline_query_current_chat=''),
+            InlineKeyboardButton('🎲 Random Movie', callback_data='random_movie')
+        ], [
+            InlineKeyboardButton('🌟 Popular Movies', callback_data='popular'),
+            InlineKeyboardButton('🆕 Latest Added', callback_data='latest')
+        ], [
+            InlineKeyboardButton('🔙 Back to Home', callback_data='start')
+        ]]
+        reply_markup = InlineKeyboardMarkup(buttons)
+        await query.message.edit_text(
+            text="""🎭 <b>Movie Collection</b>
+
+📊 <b>Database Stats:</b>
+🎬 16,236+ Movies & Series
+🌍 14 Subtitle Languages
+⚡ Instant Downloads
+
+🔍 <b>Search Options:</b>
+• Type movie name directly
+• Use search button above
+• Browse popular movies
+• Get random recommendations
+
+💫 <b>Subtitle Languages:</b>
+English • Korean • Spanish • French
+German • Italian • Portuguese • Japanese
+Chinese • Arabic • Hindi • Russian
+Turkish • Dutch""",
+            reply_markup=reply_markup,
+            parse_mode=enums.ParseMode.HTML
+        )
     elif query.data == "owner_info":
             buttons = [[
                     InlineKeyboardButton('🔙 Bαcĸ', callback_data="start"),
-                    InlineKeyboardButton('📞 Coɴтαcт', url="t.me/ImSahanSBot")
+                    InlineKeyboardButton('📞 Coɴтαcт', url="https://t.me/Iron_voldy")
                   ]]
             reply_markup = InlineKeyboardMarkup(buttons)
             await query.message.edit_text(

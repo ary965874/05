@@ -183,3 +183,7 @@ Name - {}
 ━━━━━━━━━━━━━━‌‌
 🪫 𝗣𝗼𝘄𝗲𝗿𝗲𝗱 𝗯𝘆: 
 <b>- @SECLK | @CeylonCryptoSL -</b>"""
+
+    BUTTON_LOCK_TEXT = """Please check that you have joined the required channels."""
+    FORCE_SUB_TEXT = """Please join the required channels to use this bot."""
+    WELCOM_TEXT = """Welcome to the bot! Use the commands to get started."""

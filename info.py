@@ -1,58 +1,77 @@
-import re
-from Script import script
+import re, time
 from os import environ
+from Script import script 
 
 id_pattern = re.compile(r'^.\d+$')
-def is_enabled(value, default):
-    if value.lower() in ["true", "yes", "1", "enable", "y"]:
-        return True
-    elif value.lower() in ["false", "no", "0", "disable", "n"]:
-        return False
-    else:
-        return default
 
-# Bot information
-SESSION = environ.get('SESSION', 'Media_search')
-API_ID = int(environ.get('API_ID','6138975'))
-API_HASH = environ.get('API_HASH','c80d9cd8fed68bf79ac00551a1c8f57b')
-BOT_TOKEN = environ.get('BOT_TOKEN','7205180049:AAHnYt1xPnhTrq4s-B0orREuEcIYPGbZ9dk')
+def is_enabled(value, default):
+    if value.strip().lower() in ["on", "true", "yes", "1", "enable", "y"]: return True
+    elif value.strip().lower() in ["off", "false", "no", "0", "disable", "n"]: return False
+    else: return default
+
+# PyroClient Setup 
+API_ID = int(environ.get('API_ID', '3135143'))
+API_HASH = environ.get('API_HASH', '24f97a7491f6fc888eeff31694c061bf')
+BOT_TOKEN = environ.get('BOT_TOKEN', '8064076565:AAHD9rkZh2AsoHiNthaho2mz2H78mb0Bu44')
 
 # Bot settings
-CACHE_TIME = int(environ.get('CACHE_TIME', 300))
-USE_CAPTION_FILTER = bool(environ.get('USE_CAPTION_FILTER', False))
-PICS = (environ.get('PICS', 'https://i.postimg.cc/8C15CQ5y/1.png https://i.postimg.cc/gcNtrv0m/2.png https://i.postimg.cc/cHD71BBz/3.png https://i.postimg.cc/F1XYhY8q/4.png https://i.postimg.cc/1tNwGVxC/5.png https://i.postimg.cc/dtW30QpL/6.png https://i.postimg.cc/139dvs3c/7.png https://i.postimg.cc/QtXVtB8K/8.png https://i.postimg.cc/y8j8G1XV/9.png https://i.postimg.cc/zDF6KyJX/10.png https://i.postimg.cc/fyycVqzd/11.png https://i.postimg.cc/26ZBtBZr/13.png https://i.postimg.cc/PJn8nrWZ/14.png https://i.postimg.cc/cC7txyhz/15.png https://i.postimg.cc/kX9tjGXP/16.png https://i.postimg.cc/zXjH4NVb/17.png https://i.postimg.cc/sggGrLhn/18.png https://i.postimg.cc/y8pgYTh7/19.png')).split()
+WEB_SUPPORT = bool(environ.get("WEBHOOK", 'True')) # for web support on/off
+PICS = (environ.get('PICS', 'https://graph.org/file/01ddfcb1e8203879a63d7.jpg https://graph.org/file/d69995d9846fd4ad632b8.jpg https://graph.org/file/a125497b6b85a1d774394.jpg https://graph.org/file/43d26c54d37f4afb830f7.jpg https://graph.org/file/60c1adffc7cc2015f771c.jpg https://graph.org/file/d7b520240b00b7f083a24.jpg https://graph.org/file/0f336b0402db3f2a20037.jpg https://graph.org/file/39cc4e15cad4519d8e932.jpg https://graph.org/file/d59a1108b1ed1c6c6c144.jpg https://te.legra.ph/file/3a4a79f8d5955e64cbb8e.jpg https://graph.org/file/d69995d9846fd4ad632b8.jpg')).split()
+UPTIME = time.time()
 
 # Admins, Channels & Users
-ADMINS = [int(admin) if id_pattern.search(admin) else admin for admin in environ.get('ADMINS', '7374454591 1573108290').split()]
-CHANNELS = [int(ch) if id_pattern.search(ch) else ch for ch in environ.get('CHANNELS', '-1001793950262 -1002080383910 -1001396095544 -1001620200646 -1001732737927 -1001551816705 -1001690448036 -1001622478032 -1001566642237 -1001705433155 -1001584832671 -1001519694012 -1001565676692 -1001586913070 -1001784709266 -1001793950262 -1001645647150 -1001509224438 -1001537303459 -1001797222352 -1001634044892 -1001588529187 -1001661067577 -1001566642237 -1001280303317 -1001594099259 -1001210825788 -1002454612042 -1002266146125').split()]
+CACHE_TIME = int(environ.get('CACHE_TIME', 300))
+ADMINS = [int(admin) if id_pattern.search(admin) else admin for admin in environ.get('ADMINS', '1234523543').split()]
+CHANNELS = [int(ch) if id_pattern.search(ch) else ch for ch in environ.get('CHANNELS', '-1002614174192 -1001641168678 -1001565676692').split()]
 auth_users = [int(user) if id_pattern.search(user) else user for user in environ.get('AUTH_USERS', '').split()]
 AUTH_USERS = (auth_users + ADMINS) if auth_users else []
+auth_channel = environ.get('AUTH_CHANNEL', '-1002614174192')
 auth_grp = environ.get('AUTH_GROUP')
-AUTH_CHANNEL = [int(ch) if id_pattern.search(ch) else ch for ch in environ.get('AUTH_CHANNEL', '').split()]
+AUTH_CHANNEL = int(auth_channel) if auth_channel and id_pattern.search(auth_channel) else None
 AUTH_GROUPS = [int(ch) for ch in auth_grp.split()] if auth_grp else None
-NON_AUTH_GROUPS = [int(ch) if id_pattern.search(ch) else ch for ch in environ.get('NON_AUTH_GROUPS', '').split()]
+NON_AUTH_GROUPS = []
 
-# MongoDB information
-SECONDARY_DB_URL = 'mongodb+srv://sahan:sahan@cluster0.bu30ajg.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0'
-DATABASE_NAME = environ.get('DATABASE_NAME', "sahan")
+# MongoDB information - Using your new database
+DATABASE_URL = environ.get('DATABASE_URL', "mongodb+srv://tharu:20020224Ha@cluster0.tn75wcw.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
+DATABASE_NAME = environ.get('DATABASE_NAME', "Cluster0")
+FILE_DB_URL = environ.get("FILE_DB_URL", DATABASE_URL)
+FILE_DB_NAME = environ.get("FILE_DB_NAME", DATABASE_NAME)
 COLLECTION_NAME = environ.get('COLLECTION_NAME', 'Telegram_files')
-DATABASE_URI = environ.get('DATABASE_URI', "mongodb+srv://sahan:sahan@cluster0.lytqj.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
-FILES_DB_URL = environ.get('FILES_DB_URL', "mongodb+srv://sahan:sahan@cluster0.bdubn.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
+
+# Filters Configuration 
+MAX_RIST_BTNS = int(environ.get('MAX_RIST_BTNS', "10"))
+START_MESSAGE = environ.get('START_MESSAGE', script.START_TXT)
+BUTTON_LOCK_TEXT = environ.get("BUTTON_LOCK_TEXT", script.BUTTON_LOCK_TEXT)
+FORCE_SUB_TEXT = environ.get('FORCE_SUB_TEXT', script.FORCE_SUB_TEXT)
+
+WELCOM_PIC = environ.get("WELCOM_PIC", "")
+WELCOM_TEXT = environ.get("WELCOM_TEXT", script.WELCOM_TEXT)
+PMFILTER = is_enabled(environ.get('PMFILTER', "True"), True)
+G_FILTER = is_enabled(environ.get("G_FILTER", "True"), True)
+BUTTON_LOCK = is_enabled(environ.get("BUTTON_LOCK", "True"), True)
+RemoveBG_API = environ.get("RemoveBG_API", "")
+
+# url shortner
+SHORT_URL = environ.get("SHORT_URL")
+SHORT_API = environ.get("SHORT_API")
 
 # Others
-LOG_CHANNEL = int(environ.get('LOG_CHANNEL', '-1002281952451'))
-SUPPORT_CHAT = environ.get('SUPPORT_CHAT', 'TeamEvamaria')
-P_TTI_SHOW_OFF = is_enabled((environ.get('P_TTI_SHOW_OFF', "False")), False)
-IMDB = is_enabled((environ.get('IMDB', "False")), False)
-SINGLE_BUTTON = is_enabled((environ.get('SINGLE_BUTTON', "True")), True)
-CUSTOM_FILE_CAPTION = environ.get("CUSTOM_FILE_CAPTION", script.FILE_CAPTION)
-BATCH_FILE_CAPTION = environ.get("BATCH_FILE_CAPTION", CUSTOM_FILE_CAPTION)
+IMDB_DELET_TIME = int(environ.get('IMDB_DELET_TIME', "300"))
+LOG_CHANNEL = int(environ.get('LOG_CHANNEL', '-1002614174192'))
+INDEX_REQ_CHANNEL = int(environ.get('INDEX_REQ_CHANNEL', LOG_CHANNEL))
+SUPPORT_CHAT = environ.get('SUPPORT_CHAT', 'MKN_BOTZ_DISCUSSION_GROUP')
+P_TTI_SHOW_OFF = is_enabled(environ.get('P_TTI_SHOW_OFF', "True"), True)
+PM_IMDB = is_enabled(environ.get('PM_IMDB', "True"), True)
+IMDB = is_enabled(environ.get('IMDB', "True"), True)
+SINGLE_BUTTON = is_enabled(environ.get('SINGLE_BUTTON', "True"), True)
+CUSTOM_FILE_CAPTION = environ.get("CUSTOM_FILE_CAPTION", "{file_name}")
+BATCH_FILE_CAPTION = environ.get("BATCH_FILE_CAPTION", None)
 IMDB_TEMPLATE = environ.get("IMDB_TEMPLATE", script.IMDB_TEMPLATE)
 LONG_IMDB_DESCRIPTION = is_enabled(environ.get("LONG_IMDB_DESCRIPTION", "False"), False)
-SPELL_CHECK_REPLY = is_enabled(environ.get("SPELL_CHECK_REPLY", "False"), False)
+SPELL_CHECK_REPLY = is_enabled(environ.get("SPELL_CHECK_REPLY", "True"), True)
 MAX_LIST_ELM = environ.get("MAX_LIST_ELM", None)
-INDEX_REQ_CHANNEL = int(environ.get('INDEX_REQ_CHANNEL', LOG_CHANNEL))
-FILE_STORE_CHANNEL = [int(ch) for ch in (environ.get('FILE_STORE_CHANNEL', '-1002266324036')).split()]
-MELCOW_NEW_USERS = is_enabled((environ.get('MELCOW_NEW_USERS', "False")), False)
-PROTECT_CONTENT = is_enabled((environ.get('PROTECT_CONTENT', "True")), True)
-PUBLIC_FILE_STORE = is_enabled((environ.get('PUBLIC_FILE_STORE', "True")), True)
+FILE_STORE_CHANNEL = [int(ch) for ch in (environ.get('FILE_STORE_CHANNEL', '-1002614174192')).split()]
+MELCOW_NEW_USERS = is_enabled(environ.get('MELCOW_NEW_USERS', "True"), True)
+PROTECT_CONTENT = is_enabled(environ.get('PROTECT_CONTENT', "False"), False)
+PUBLIC_FILE_STORE = is_enabled(environ.get('PUBLIC_FILE_STORE', "True"), True)
+LOG_MSG = "{} Iꜱ Rᴇsᴛᴀʀᴛᴇᴅ....✨\n\n🗓️ Dᴀᴛᴇ : {}\n⏰ Tɪᴍᴇ : {}\n\n🖥️ Rᴇᴏᴩ: {}\n🉐 Vᴇʀsɪᴏɴ: {}\n🧾 Lɪᴄᴇɴꜱᴇ: {}\n©️ Cᴏᴩʏʀɪɢʜᴛ: {}"

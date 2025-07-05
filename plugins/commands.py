@@ -10,6 +10,7 @@ from database.ia_filterdb import get_file_details, unpack_new_file_id, get_delet
 from database.users_chats_db import db
 from info import CHANNELS, ADMINS, AUTH_CHANNEL, LOG_CHANNEL, NON_AUTH_GROUPS, PICS, BATCH_FILE_CAPTION, CUSTOM_FILE_CAPTION, PROTECT_CONTENT
 from utils import get_size, is_subscribed, temp
+from real_subtitle_handler import real_subtitle_handler as subtitle_handler
 import re
 import json
 import base64
@@ -30,12 +31,18 @@ async def start(client, message):
         await message.reply(script.START_TXT.format(message.from_user.mention if message.from_user else message.chat.title, temp.U_NAME, temp.B_NAME), reply_markup=reply_markup)
         if not await db.get_chat(message.chat.id):
             total=await client.get_chat_members_count(message.chat.id)
-            await client.send_message(LOG_CHANNEL, script.LOG_TEXT_G.format(message.chat.title, message.chat.id, total, "Unknown"))       
+            try:
+                await client.send_message(LOG_CHANNEL, script.LOG_TEXT_G.format(message.chat.title, message.chat.id, total, "Unknown"))       
+            except Exception as e:
+                logger.error(f"Failed to send log message: {e}")
             await db.add_chat(message.chat.id, message.chat.title)
         return 
     if not await db.is_user_exist(message.from_user.id):
         await db.add_user(message.from_user.id, message.from_user.first_name)
-        await client.send_message(LOG_CHANNEL, script.LOG_TEXT_P.format(message.from_user.id, message.from_user.mention))
+        try:
+            await client.send_message(LOG_CHANNEL, script.LOG_TEXT_P.format(message.from_user.id, message.from_user.mention))
+        except Exception as e:
+            logger.error(f"Failed to send log message: {e}")
     if len(message.command) != 2:
         buttons = [[
                     InlineKeyboardButton('➕ Add Me To Your Group ➕', url=f'http://t.me/{temp.U_NAME}?startgroup=true')
@@ -93,6 +100,55 @@ async def start(client, message):
         return
     
     file_id = message.command[1]
+    
+    # Check if this is a subtitle request
+    if '_sub_' in file_id:
+        parts = file_id.split('_sub_')
+        actual_file_id = parts[0]
+        subtitle_language = parts[1]
+        
+        # Get subtitle preferences
+        subtitle_prefs = getattr(temp, 'SUBTITLE_PREFS', {}).get(message.from_user.id, {})
+        
+        if subtitle_prefs and subtitle_prefs.get('language') == subtitle_language:
+            # Use language-specific channels for authorization
+            language_channels = subtitle_prefs.get('channels', [])
+            auth_channels = [int(ch) for ch in language_channels]
+        else:
+            # Fallback to default channels
+            auth_channels = temp.AUTH_CHANNEL
+            
+        # Check subscription to language-specific channels
+        btn = []
+        for channel in auth_channels:
+            if not await is_subscribed(client, message, channel):
+                try:
+                    invite_link = await client.create_chat_invite_link(channel, creates_join_request=True)
+                    chat = await client.get_chat(channel)
+                    btn.append(
+                        [InlineKeyboardButton(f"✇ Join {chat.title} ✇", url=invite_link.invite_link)]
+                    )
+                except Exception as e:
+                    logger.error(f"Error creating invite link for channel {channel}: {e}")
+                    continue
+
+        if btn:
+            btn.append([InlineKeyboardButton("🔄 Try Again", url=f"https://t.me/{temp.U_NAME}?start={file_id}")])
+            await client.send_message(
+                chat_id=message.from_user.id,
+                text=f"**Please Join {subtitle_language.title()} Movie Channels to get subtitles!**\n\n"
+                     f"🗣 **Language:** {subtitle_language.title()}\n"
+                     f"🎬 **Includes:** Movie + Subtitles",
+                reply_markup=InlineKeyboardMarkup(btn),
+                parse_mode=enums.ParseMode.MARKDOWN
+            )
+            return
+            
+        # User is subscribed to language channels, send movie with subtitles
+        await send_movie_with_subtitles(client, message, actual_file_id, subtitle_language)
+        return
+        
+    # Regular file request without subtitles
     files_ = await get_file_details(file_id)           
     if not files_:
         return await message.reply('No such file exist.')
@@ -202,3 +258,148 @@ async def ping(client, message):
     msg = await message.reply("👀")
     end_time = time.monotonic()
     await msg.edit(f'{round((end_time - start_time) * 1000)} ms')
+
+
+async def send_movie_with_subtitles(client, message, file_id, subtitle_language):
+    """Send movie file with subtitles"""
+    try:
+        # Get movie file details
+        files_ = await get_file_details(file_id)
+        if not files_:
+            await message.reply('No such file exist.')
+            return
+            
+        files = files_
+        title = files['file_name']
+        size = get_size(files['file_size'])
+        
+        # Debug: Print file info
+        logger.info(f"Attempting to send file: {title}, file_id: {file_id}")
+        logger.info(f"File details: {files}")
+        
+        # Search for subtitles
+        await message.reply("🔍 Searching for subtitles...")
+        subtitles = await subtitle_handler.search_subtitles(title, subtitle_language)
+        
+        # Send the movie file
+        f_caption = ""
+        if CUSTOM_FILE_CAPTION:
+            try:
+                f_caption = CUSTOM_FILE_CAPTION.format(
+                    file_name='' if title is None else title,
+                    file_size='' if size is None else size,
+                    file_caption='' if f_caption is None else f_caption
+                )
+            except Exception as e:
+                logger.exception(e)
+                f_caption = f_caption
+        
+        if f_caption is None:
+            f_caption = f"{files['file_name']}"
+        
+        # Add subtitle info to caption
+        f_caption += f"\n\n🗣 **Language:** {subtitle_language.title()}"
+        
+        # Step 1: Send movie first (try multiple methods)
+        movie_sent = False
+        try:
+            # Method 1: Try send_cached_media (original method)
+            await client.send_cached_media(
+                chat_id=message.from_user.id,
+                file_id=file_id,
+                caption=f_caption
+            )
+            await message.reply("✅ Movie sent successfully!")
+            movie_sent = True
+        except Exception as e1:
+            logger.error(f"send_cached_media failed: {e1}")
+            
+            try:
+                # Method 2: Try send_document
+                await client.send_document(
+                    chat_id=message.from_user.id,
+                    document=file_id,
+                    caption=f_caption
+                )
+                await message.reply("✅ Movie sent successfully!")
+                movie_sent = True
+            except Exception as e2:
+                logger.error(f"send_document failed: {e2}")
+                
+                try:
+                    # Method 3: Try send_video
+                    await client.send_video(
+                        chat_id=message.from_user.id,
+                        video=file_id,
+                        caption=f_caption
+                    )
+                    await message.reply("✅ Movie sent successfully!")
+                    movie_sent = True
+                except Exception as e3:
+                    logger.error(f"send_video failed: {e3}")
+                    await message.reply(f"❌ Movie file unavailable. Sending subtitles only...\n📁 Movie: {title}")
+                    # Continue to send subtitles even if movie fails
+        
+        # Step 2: Process and send subtitles
+        if subtitles:
+            await message.reply("📥 Processing subtitles...")
+            
+            subtitle_sent = False
+            for i, subtitle in enumerate(subtitles[:1]):  # Send 1 subtitle file for now
+                try:
+                    subtitle_data = await subtitle_handler.download_subtitle(subtitle)
+                    if subtitle_data:
+                        # Create subtitle file
+                        import tempfile
+                        temp_dir = tempfile.gettempdir()
+                        subtitle_filename = f"{title.replace(' ', '_')}_{subtitle_language}.srt"
+                        temp_file = os.path.join(temp_dir, subtitle_filename)
+                        
+                        # Write subtitle file
+                        with open(temp_file, 'wb') as f:
+                            f.write(subtitle_data)
+                        
+                        # Send subtitle file
+                        await client.send_document(
+                            chat_id=message.from_user.id,
+                            document=temp_file,
+                            caption=f"🗣 **{subtitle_language.title()} Subtitle**\n🎬 **Movie:** {title}\n📁 **File:** {subtitle_filename}"
+                        )
+                        
+                        # Clean up
+                        try:
+                            os.remove(temp_file)
+                        except:
+                            pass
+                        
+                        subtitle_sent = True
+                        break
+                        
+                except Exception as e:
+                    logger.error(f"Error processing subtitle: {e}")
+                    continue
+            
+            if subtitle_sent:
+                if movie_sent:
+                    await message.reply(f"✅ Movie and subtitle sent successfully!\n🗣 Language: {subtitle_language.title()}")
+                else:
+                    await message.reply(f"✅ Subtitle sent successfully!\n🗣 Language: {subtitle_language.title()}\n⚠️ Movie file had issues")
+            else:
+                if movie_sent:
+                    await message.reply(f"✅ Movie sent successfully!\n❌ Could not process subtitles for {subtitle_language.title()}")
+                else:
+                    await message.reply(f"❌ Both movie and subtitles had issues. Please try again later.")
+                
+        else:
+            if movie_sent:
+                await message.reply(f"✅ Movie sent successfully!\n❌ No subtitles found for {subtitle_language.title()}")
+            else:
+                await message.reply(f"❌ Movie file issues and no subtitles found. Please try again later.")
+            
+    except Exception as e:
+        logger.error(f"Error sending movie with subtitles: {e}")
+        await message.reply("❌ Error occurred while processing your request.")
+    
+    finally:
+        # Close subtitle handler session
+        await subtitle_handler.close_session()

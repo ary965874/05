@@ -14,6 +14,7 @@ from hydrogram.errors import FloodWait, UserIsBlocked, MessageNotModified, PeerI
 from utils import format_size, remove_username_from_filename, get_size, is_subscribed, get_poster, temp
 from database.users_chats_db import db
 from database.ia_filterdb import delete_func, get_database_count, get_file_details, get_search_results, get_delete_results, get_database_size
+from real_subtitle_handler import real_subtitle_handler as subtitle_handler
 import logging, random, psutil
 
 logger = logging.getLogger(__name__)
@@ -311,6 +312,49 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
     elif query.data.startswith("file"):
         ident, file_id = query.data.split("#")
+        # Get file details to show subtitle options
+        file_details = await get_file_details(file_id)
+        if file_details:
+            # Show subtitle language selection
+            subtitle_languages = subtitle_handler.get_supported_languages()
+            btn = []
+            
+            # Add subtitle language options
+            from language_config import get_language_display_name
+            for lang in subtitle_languages[:8]:  # Show first 8 languages
+                display_name = get_language_display_name(lang)
+                btn.append([InlineKeyboardButton(f"{display_name}", callback_data=f"subtitle#{file_id}#{lang}")])
+            
+            # Add "No Subtitles" option
+            btn.append([InlineKeyboardButton("🚫 No Subtitles Needed", callback_data=f"no_sub#{file_id}")])
+            
+            await query.message.edit_text(
+                f"🎬 **{file_details['file_name']}**\n\n"
+                "🗣 **Select Subtitle Language:**\n"
+                "Choose your preferred subtitle language or select 'No Subtitles' to proceed without subtitles.",
+                reply_markup=InlineKeyboardMarkup(btn)
+            )
+        else:
+            await query.answer(url=f"https://t.me/{temp.U_NAME}?start={file_id}")
+
+    elif query.data.startswith("subtitle"):
+        # Handle subtitle selection
+        ident, file_id, language = query.data.split("#")
+        
+        # Store subtitle preference temporarily
+        temp.SUBTITLE_PREFS = getattr(temp, 'SUBTITLE_PREFS', {})
+        temp.SUBTITLE_PREFS[query.from_user.id] = {
+            'file_id': file_id,
+            'language': language,
+            'channels': subtitle_handler.get_language_channels(language)
+        }
+        
+        await query.answer(f"✅ {language.title()} selected! Click to continue in DM.", url=f"https://t.me/{temp.U_NAME}?start={file_id}_sub_{language}")
+    
+    elif query.data.startswith("no_sub"):
+        # Handle no subtitles selection
+        ident, file_id = query.data.split("#")
+        await query.answer("No subtitles selected")
         await query.answer(url=f"https://t.me/{temp.U_NAME}?start={file_id}")
 
     elif query.data == "reqinfo":
@@ -478,7 +522,10 @@ async def cb_handler(client: Client, query: CallbackQuery):
             deleted += 1
         await query.message.edit(f'Deleted files: {deleted}')
         
-    await query.answer('🔄')
+    try:
+        await query.answer('🔄')
+    except Exception:
+        pass  # Ignore callback query errors
 
 
 async def auto_filter(client, msg, spoll=False):
@@ -488,8 +535,11 @@ async def auto_filter(client, msg, spoll=False):
     search = re.sub(r"(_|\-|\.|\+)", " ", message.text.strip())
     all_files = await get_search_results(search)
     if not all_files:
+        # Clean search query for URL
+        clean_search = "".join(c for c in search if c.isalnum() or c.isspace()).strip()
+        google_url = f"https://www.google.com/search?q={clean_search.replace(' ', '+')}"
         btn = [[
-                InlineKeyboardButton("🔍 Search Google", url=f"https://www.google.com/search?q={search.replace(' ', '+')}")
+                InlineKeyboardButton("🔍 Search Google", url=google_url)
         ]]
         v = await msg.reply('I cant find this in my database', reply_markup=InlineKeyboardMarkup(btn))
         await asyncio.sleep(120)

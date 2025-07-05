@@ -5,17 +5,18 @@ import base64
 from hydrogram.file_id import FileId
 from pymongo.errors import DuplicateKeyError, OperationFailure
 from pymongo import MongoClient, ASCENDING
-from info import DATABASE_URI, DATABASE_NAME, COLLECTION_NAME, USE_CAPTION_FILTER, FILES_DB_URL, SECONDARY_DB_URL
+from info import DATABASE_URL, DATABASE_NAME, COLLECTION_NAME, FILE_DB_URL, FILE_DB_NAME
 
 logger = logging.getLogger(__name__)
 
-# Primary database connection
-primary_client = MongoClient(FILES_DB_URL)
+# Primary database connection (your new database)
+primary_client = MongoClient(DATABASE_URL)
 primary_db = primary_client[DATABASE_NAME]
 primary_col = primary_db[COLLECTION_NAME]
 
-secondary_client = MongoClient(SECONDARY_DB_URL)
-secondary_db = secondary_client[DATABASE_NAME]
+# Secondary database connection (same as primary for now)
+secondary_client = MongoClient(FILE_DB_URL)
+secondary_db = secondary_client[FILE_DB_NAME]
 secondary_col = secondary_db[COLLECTION_NAME]
 
 

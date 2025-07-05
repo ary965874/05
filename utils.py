@@ -1,5 +1,7 @@
 import logging
 from hydrogram.errors import InputUserDeactivated, UserNotParticipant, FloodWait, UserIsBlocked, PeerIdInvalid
+
+logger = logging.getLogger(__name__)
 from info import AUTH_CHANNEL, LONG_IMDB_DESCRIPTION, MAX_LIST_ELM
 from imdb import Cinemagoer
 import asyncio
@@ -65,6 +67,10 @@ async def is_subscribed(bot, query, channel):
         return True
     except UserNotParticipant:
         return False
+    except Exception as e:
+        # Handle invalid channel IDs or other errors
+        logger.error(f"Error checking subscription for channel {channel}: {e}")
+        return True  # Allow access if channel check fails
 
 async def get_poster(query, bulk=False, id=False, file=None):
     if not id:

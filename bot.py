@@ -3,11 +3,12 @@ import logging.config
 from hydrogram import Client, __version__, idle
 from hydrogram.raw.all import layer
 from database.users_chats_db import db
-from info import SESSION, API_ID, API_HASH, BOT_TOKEN, AUTH_CHANNEL
+from info import API_ID, API_HASH, BOT_TOKEN, AUTH_CHANNEL
 from utils import temp
 from typing import Union, Optional, AsyncGenerator
 from hydrogram import types
-import uvloop, asyncio
+import asyncio
+import sys
 
 logging.basicConfig(
     level=logging.INFO,  # Now INFO logs will show everywhere
@@ -17,7 +18,21 @@ logging.basicConfig(
 logging.getLogger('hydrogram').setLevel(logging.ERROR)
 logger = logging.getLogger(__name__)
 
-uvloop.install()
+# Install uvloop only on Unix systems (not Windows)
+if sys.platform != 'win32':
+    try:
+        import uvloop
+        uvloop.install()
+        logger.info("uvloop installed for better performance")
+    except ImportError:
+        logger.info("uvloop not available, using default asyncio event loop")
+
+# Try to import tgcrypto for better performance (optional)
+try:
+    import tgcrypto
+    logger.info("tgcrypto loaded for faster encryption")
+except ImportError:
+    logger.info("tgcrypto not available - bot will work without it (slower encryption)")
 
 class Bot(Client):
     def __init__(self):
@@ -34,7 +49,14 @@ class Bot(Client):
     async def start(self):
         await super().start()
         stg = await db.get_sttg()
-        temp.AUTH_CHANNEL = list(map(int, stg.get('AUTH_CHANNEL').split())) if stg else []
+        
+        # Use test channels instead of database stored channels
+        from info import AUTH_CHANNEL, CHANNELS
+        temp.AUTH_CHANNEL = [AUTH_CHANNEL] if AUTH_CHANNEL else []
+        temp.CHANNELS = CHANNELS
+        logger.info(f"Using auth channel: {temp.AUTH_CHANNEL}")
+        logger.info(f"Using movie channels: {len(CHANNELS)} channels")
+        
         me = await self.get_me()
         temp.ME = me.id
         temp.U_NAME = me.username

@@ -39,7 +39,7 @@ async def check_user_subscriptions(client: Client, user_id: int, selected_langua
     return len(missing_channels) == 0, missing_channels, selected_language is None
 
 async def create_subscription_buttons(client: Client, user_id: int, selected_language: str = None, callback_data: str = None) -> InlineKeyboardMarkup:
-    """Create buttons for channel subscription"""
+    """Create buttons for channel subscription with auto-join capability"""
     buttons = []
     
     # Check which channels user needs to join
@@ -57,19 +57,20 @@ async def create_subscription_buttons(client: Client, user_id: int, selected_lan
     
     logger.info(f"Creating buttons for missing channels: {missing_channels}")
     
-    # Create buttons only for channels user is NOT subscribed to
+    # Create buttons for direct auto-join
     for channel_type, channel_id in missing_channels:
         try:
             chat = await client.get_chat(channel_id)
-            invite = await client.create_chat_invite_link(channel_id, creates_join_request=True)
             
             if channel_type == 'common':
                 button_text = f"✇ Join Common Channel ({chat.title}) ✇"
+                callback_data_btn = f"auto_join_common_{channel_id}"
             else:
                 button_text = f"✇ Join {get_language_display_name(selected_language)} Channel ({chat.title}) ✇"
+                callback_data_btn = f"auto_join_language_{channel_id}_{selected_language}"
             
             buttons.append([
-                InlineKeyboardButton(button_text, url=invite.invite_link)
+                InlineKeyboardButton(button_text, callback_data=callback_data_btn)
             ])
         except Exception as e:
             logger.error(f"Error creating {channel_type} channel button: {e}")
@@ -190,6 +191,139 @@ async def handle_show_language_selection(client: Client, query: CallbackQuery):
         )
     except Exception as e:
         logger.error(f"Error showing language selection: {e}")
+        await query.answer("❌ An error occurred. Please try again.")
+
+@Client.on_callback_query(filters.regex(r"^auto_join_common_"))
+async def handle_auto_join_common(client: Client, query: CallbackQuery):
+    """Handle auto-join to common channel"""
+    try:
+        from database.users_chats_db import db
+        
+        channel_id = int(query.data.split("_")[3])
+        user_id = query.from_user.id
+        
+        # Try to add user to channel
+        try:
+            await client.add_chat_members(channel_id, user_id)
+            await query.answer("✅ Successfully joined the common channel!")
+            
+            # Check if user still needs to join other channels
+            user_language = await db.get_user_language(user_id)
+            if user_language:
+                is_subscribed, missing_channels, _ = await check_user_subscriptions(client, user_id, user_language)
+                
+                if is_subscribed:
+                    await query.message.edit_text(
+                        f"🎉 **All set!** You are now subscribed to all required channels.\n"
+                        f"✅ **Language**: {get_language_display_name(user_language)}\n\n"
+                        "You can now use the bot to search for movies and subtitles!",
+                        reply_markup=InlineKeyboardMarkup([[
+                            InlineKeyboardButton("🎬 Search Movies", switch_inline_query_current_chat="")
+                        ]])
+                    )
+                else:
+                    # Still need to join language channel
+                    subscription_buttons = await create_subscription_buttons(
+                        client, user_id, user_language, f"check_subscription_{user_language}"
+                    )
+                    await query.message.edit_text(
+                        f"✅ **Common channel joined!**\n\n"
+                        f"🎯 **Language**: {get_language_display_name(user_language)}\n\n"
+                        f"📋 **Still need to join**: {get_language_display_name(user_language)} Channel\n\n"
+                        "Please join the language-specific channel to continue:",
+                        reply_markup=subscription_buttons
+                    )
+            else:
+                await query.message.edit_text(
+                    "✅ **Common channel joined!**\n\n"
+                    "Please select your language to continue:",
+                    reply_markup=await show_language_selection(client, user_id)
+                )
+                
+        except Exception as e:
+            logger.error(f"Error adding user to common channel: {e}")
+            # Fallback to invite link
+            try:
+                chat = await client.get_chat(channel_id)
+                invite = await client.create_chat_invite_link(channel_id, creates_join_request=False)
+                await query.answer(f"Click the link to join {chat.title}", show_alert=True)
+                await query.message.edit_text(
+                    f"🔗 **Please join manually:**\n\n"
+                    f"Click the button below to join {chat.title}:",
+                    reply_markup=InlineKeyboardMarkup([[
+                        InlineKeyboardButton(f"✇ Join {chat.title} ✇", url=invite.invite_link)
+                    ], [
+                        InlineKeyboardButton("🔄 Try Again", callback_data=f"check_subscription_{await db.get_user_language(user_id) or 'english'}")
+                    ]])
+                )
+            except Exception as e2:
+                logger.error(f"Error creating fallback invite link: {e2}")
+                await query.answer("❌ Unable to join channel. Please contact admin.", show_alert=True)
+                
+    except Exception as e:
+        logger.error(f"Error in auto-join common handler: {e}")
+        await query.answer("❌ An error occurred. Please try again.")
+
+@Client.on_callback_query(filters.regex(r"^auto_join_language_"))
+async def handle_auto_join_language(client: Client, query: CallbackQuery):
+    """Handle auto-join to language-specific channel"""
+    try:
+        parts = query.data.split("_")
+        channel_id = int(parts[3])
+        language = parts[4]
+        user_id = query.from_user.id
+        
+        # Try to add user to channel
+        try:
+            await client.add_chat_members(channel_id, user_id)
+            await query.answer(f"✅ Successfully joined the {get_language_display_name(language)} channel!")
+            
+            # Check if user is now subscribed to all required channels
+            is_subscribed, missing_channels, _ = await check_user_subscriptions(client, user_id, language)
+            
+            if is_subscribed:
+                await query.message.edit_text(
+                    f"🎉 **All set!** You are now subscribed to all required channels.\n"
+                    f"✅ **Language**: {get_language_display_name(language)}\n\n"
+                    "You can now use the bot to search for movies and subtitles!",
+                    reply_markup=InlineKeyboardMarkup([[
+                        InlineKeyboardButton("🎬 Search Movies", switch_inline_query_current_chat="")
+                    ]])
+                )
+            else:
+                # Still need to join common channel
+                subscription_buttons = await create_subscription_buttons(
+                    client, user_id, language, f"check_subscription_{language}"
+                )
+                await query.message.edit_text(
+                    f"✅ **{get_language_display_name(language)} channel joined!**\n\n"
+                    f"📋 **Still need to join**: Common Channel\n\n"
+                    "Please join the common channel to continue:",
+                    reply_markup=subscription_buttons
+                )
+                
+        except Exception as e:
+            logger.error(f"Error adding user to language channel: {e}")
+            # Fallback to invite link
+            try:
+                chat = await client.get_chat(channel_id)
+                invite = await client.create_chat_invite_link(channel_id, creates_join_request=False)
+                await query.answer(f"Click the link to join {chat.title}", show_alert=True)
+                await query.message.edit_text(
+                    f"🔗 **Please join manually:**\n\n"
+                    f"Click the button below to join {chat.title}:",
+                    reply_markup=InlineKeyboardMarkup([[
+                        InlineKeyboardButton(f"✇ Join {chat.title} ✇", url=invite.invite_link)
+                    ], [
+                        InlineKeyboardButton("🔄 Try Again", callback_data=f"check_subscription_{language}")
+                    ]])
+                )
+            except Exception as e2:
+                logger.error(f"Error creating fallback invite link: {e2}")
+                await query.answer("❌ Unable to join channel. Please contact admin.", show_alert=True)
+                
+    except Exception as e:
+        logger.error(f"Error in auto-join language handler: {e}")
         await query.answer("❌ An error occurred. Please try again.")
 
 @Client.on_callback_query(filters.regex(r"^check_file_access_"))

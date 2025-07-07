@@ -149,7 +149,7 @@ async def start(client, message):
         for channel in auth_channels:
             if not await is_subscribed(client, message, channel):
                 try:
-                    invite_link = await client.create_chat_invite_link(channel, creates_join_request=True)
+                    invite_link = await client.create_chat_invite_link(channel, creates_join_request=False)
                     chat = await client.get_chat(channel)
                     btn.append(
                         [InlineKeyboardButton(f"✇ Join {chat.title} ✇", url=invite_link.invite_link)]

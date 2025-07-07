@@ -60,17 +60,23 @@ def format_size(size_str):
         return size_str.replace(" ", "")  # Fallback (remove spaces if any)
     
 async def is_subscribed(bot, query, channel):
-    if await db.find_join_req(query.from_user.id):
+    # Handle different parameter types
+    if hasattr(query, 'from_user'):
+        user_id = query.from_user.id
+    else:
+        user_id = query  # query is actually user_id
+    
+    if await db.find_join_req(user_id):
         return True
     try:
-        user = await bot.get_chat_member(channel, query.from_user.id)
+        user = await bot.get_chat_member(channel, user_id)
         return True
     except UserNotParticipant:
         return False
     except Exception as e:
         # Handle invalid channel IDs or other errors
         logger.error(f"Error checking subscription for channel {channel}: {e}")
-        return True  # Allow access if channel check fails
+        return False  # Deny access if channel check fails
 
 async def get_poster(query, bulk=False, id=False, file=None):
     if not id:

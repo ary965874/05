@@ -312,7 +312,48 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
     elif query.data.startswith("file"):
         ident, file_id = query.data.split("#")
-        # Get file details to show subtitle options
+        
+        # Check channel subscriptions before showing file options
+        from database.users_chats_db import db
+        from .channel_handler import check_user_subscriptions, create_subscription_buttons, show_language_selection
+        from language_config import get_language_display_name
+        
+        # Get user's language preference
+        user_language = await db.get_user_language(query.from_user.id)
+        
+        if not user_language:
+            # User needs to select language first
+            language_buttons = await show_language_selection(client, query.from_user.id)
+            await query.message.edit_text(
+                "🌐 **Language Selection Required**\n\n"
+                "Please select your language first to access files:",
+                reply_markup=language_buttons
+            )
+            return
+        
+        # Check channel subscriptions
+        is_subscribed_all, missing_channels, _ = await check_user_subscriptions(
+            client, query.from_user.id, user_language
+        )
+        
+        if not is_subscribed_all:
+            # User needs to join channels before accessing files
+            subscription_buttons = await create_subscription_buttons(
+                client, query.from_user.id, user_language, f"check_file_access_{file_id}"
+            )
+            
+            await query.message.edit_text(
+                f"🔒 **File Access Restricted**\n\n"
+                f"🎯 **Language**: {get_language_display_name(user_language)}\n\n"
+                f"To access this file, please join the required channels:\n"
+                f"1. Common Updates Channel\n"
+                f"2. {get_language_display_name(user_language)} Channel\n\n"
+                f"Join both channels to continue:",
+                reply_markup=subscription_buttons
+            )
+            return
+        
+        # User is subscribed - proceed with file options
         file_details = await get_file_details(file_id)
         if file_details:
             # Show subtitle language selection
@@ -320,7 +361,6 @@ async def cb_handler(client: Client, query: CallbackQuery):
             btn = []
             
             # Add subtitle language options
-            from language_config import get_language_display_name
             for lang in subtitle_languages[:8]:  # Show first 8 languages
                 display_name = get_language_display_name(lang)
                 btn.append([InlineKeyboardButton(f"{display_name}", callback_data=f"subtitle#{file_id}#{lang}")])
@@ -564,6 +604,45 @@ Turkish • Dutch""",
 async def auto_filter(client, msg, spoll=False):
     message = msg
     if message.text.startswith("/"): return  # ignore commands
+
+    # Check if user is subscribed to required channels
+    if message.from_user:
+        from database.users_chats_db import db
+        from .channel_handler import check_user_subscriptions, create_subscription_buttons, show_language_selection
+        from language_config import get_language_display_name
+        
+        user_language = await db.get_user_language(message.from_user.id)
+        
+        if not user_language:
+            # User hasn't selected a language yet
+            language_buttons = await show_language_selection(client, message.from_user.id)
+            await message.reply(
+                "🌐 **Please select your language first:**\n\n"
+                "You'll need to join 2 channels:\n"
+                "1. Common Updates Channel (for all users)\n"
+                "2. Language-specific Channel (for your chosen language)",
+                reply_markup=language_buttons
+            )
+            return
+        
+        # Check if user is subscribed to required channels
+        is_subscribed_all, missing_channels, _ = await check_user_subscriptions(client, message.from_user.id, user_language)
+        
+        if not is_subscribed_all:
+            # User needs to join channels
+            subscription_buttons = await create_subscription_buttons(
+                client, message.from_user.id, user_language, f"check_subscription_{user_language}"
+            )
+            
+            await message.reply(
+                f"🎯 **Your Language**: {get_language_display_name(user_language)}\n\n"
+                "📋 **Required Channels:**\n"
+                "1. Common Updates Channel (for all users)\n"
+                f"2. {get_language_display_name(user_language)} Channel (for your language)\n\n"
+                "Please join both channels to continue:",
+                reply_markup=subscription_buttons
+            )
+            return
 
     search = re.sub(r"(_|\-|\.|\+)", " ", message.text.strip())
     all_files = await get_search_results(search)

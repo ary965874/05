@@ -3,91 +3,91 @@ Language-specific channel configuration for subtitle bot
 Update these channel IDs with your actual language-specific channels
 """
 
-# Testing configuration - Using 2 channels for all languages
-TEST_CHANNELS = ['-1002614174192', '-1001641168678']
+# Common channel that all users must join
+COMMON_CHANNEL = '-1002614174192'
 
+# Language-specific channels with actual channel IDs
 LANGUAGE_CHANNELS = {
-    # All languages use the same 2 test channels for now
     'english': {
-        'channels': TEST_CHANNELS,
+        'channel': '-1002766947260',
         'display_name': 'English',
         'flag': '🇺🇸'
     },
     
     'korean': {
-        'channels': TEST_CHANNELS,
+        'channel': '-1002886647880',
         'display_name': 'Korean',
         'flag': '🇰🇷'
     },
     
     'spanish': {
-        'channels': TEST_CHANNELS,
+        'channel': '-1002783974864',
         'display_name': 'Spanish',
         'flag': '🇪🇸'
     },
     
     'french': {
-        'channels': TEST_CHANNELS,
+        'channel': '-1002758900991',
         'display_name': 'French',
         'flag': '🇫🇷'
     },
     
     'german': {
-        'channels': TEST_CHANNELS,
+        'channel': '-1002861718794',
         'display_name': 'German',
         'flag': '🇩🇪'
     },
     
     'italian': {
-        'channels': TEST_CHANNELS,
+        'channel': '-1002207907276',
         'display_name': 'Italian',
         'flag': '🇮🇹'
     },
     
     'portuguese': {
-        'channels': TEST_CHANNELS,
+        'channel': '-1002561296642',
         'display_name': 'Portuguese',
         'flag': '🇵🇹'
     },
     
     'chinese': {
-        'channels': TEST_CHANNELS,
+        'channel': '-1002622821443',
         'display_name': 'Chinese',
         'flag': '🇨🇳'
     },
     
     'japanese': {
-        'channels': TEST_CHANNELS,
+        'channel': '-1002781237685',
         'display_name': 'Japanese',
         'flag': '🇯🇵'
     },
     
     'arabic': {
-        'channels': TEST_CHANNELS,
+        'channel': '-1002831127039',
         'display_name': 'Arabic',
         'flag': '🇸🇦'
     },
     
     'hindi': {
-        'channels': TEST_CHANNELS,
+        'channel': '-1002767591536',
         'display_name': 'Hindi',
         'flag': '🇮🇳'
     },
     
     'tamil': {
-        'channels': TEST_CHANNELS,
+        'channel': '-1002750405093',
         'display_name': 'Tamil',
         'flag': '🇮🇳'
     },
     
     'malayalam': {
-        'channels': TEST_CHANNELS,
+        'channel': '-1002596417585',
         'display_name': 'Malayalam',
         'flag': '🇮🇳'
     },
     
     'telugu': {
-        'channels': TEST_CHANNELS,
+        'channel': '-1002822738923',
         'display_name': 'Telugu',
         'flag': '🇮🇳'
     }
@@ -102,9 +102,14 @@ def get_all_languages() -> list:
     return list(LANGUAGE_CHANNELS.keys())
 
 def get_language_channels(language: str) -> list:
-    """Get channels for a specific language"""
+    """Get channels for a specific language (common + language-specific)"""
     lang_info = get_language_info(language)
-    return lang_info['channels']
+    return [COMMON_CHANNEL, lang_info['channel']]
+
+def get_language_channel(language: str) -> str:
+    """Get the specific channel for a language"""
+    lang_info = get_language_info(language)
+    return lang_info['channel']
 
 def get_language_display_name(language: str) -> str:
     """Get display name for a language"""

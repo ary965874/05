@@ -52,9 +52,12 @@ class Bot(Client):
         
         # Use test channels instead of database stored channels
         from info import AUTH_CHANNEL, CHANNELS
+        from language_config import COMMON_CHANNEL
         temp.AUTH_CHANNEL = [AUTH_CHANNEL] if AUTH_CHANNEL else []
         temp.CHANNELS = CHANNELS
+        temp.COMMON_CHANNEL = COMMON_CHANNEL
         logger.info(f"Using auth channel: {temp.AUTH_CHANNEL}")
+        logger.info(f"Using common channel: {COMMON_CHANNEL}")
         logger.info(f"Using movie channels: {len(CHANNELS)} channels")
         
         me = await self.get_me()

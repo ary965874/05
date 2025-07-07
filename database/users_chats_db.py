@@ -14,7 +14,8 @@ class Database:
     def new_user(self, id, name):
         return dict(
             id=id,
-            name=name
+            name=name,
+            language=None
         )
 
     def new_group(self, id, title):
@@ -74,6 +75,19 @@ class Database:
 
     async def get_db_size(self):
         return self.db.command("dbstats")['dataSize']
+    
+    async def add_user_language(self, user_id, language):
+        """Add or update user's language preference"""
+        self.col.update_one(
+            {'id': int(user_id)},
+            {'$set': {'language': language}},
+            upsert=True
+        )
+    
+    async def get_user_language(self, user_id):
+        """Get user's language preference"""
+        user = self.col.find_one({'id': int(user_id)})
+        return user.get('language') if user else None
 
 
 db = Database(DATABASE_URL, DATABASE_NAME)

@@ -21,6 +21,10 @@ import time, psutil
 
 @Client.on_message(filters.command("start") & filters.incoming)
 async def start(client, message):
+    # Import required modules at the top
+    from database.users_chats_db import db
+    from .channel_handler import check_user_subscriptions, create_subscription_buttons, show_language_selection
+    
     if message.chat.type in [enums.ChatType.GROUP, enums.ChatType.SUPERGROUP]:
         buttons = [
             [
@@ -36,7 +40,8 @@ async def start(client, message):
             except Exception as e:
                 logger.error(f"Failed to send log message: {e}")
             await db.add_chat(message.chat.id, message.chat.title)
-        return 
+        return
+    
     if not await db.is_user_exist(message.from_user.id):
         await db.add_user(message.from_user.id, message.from_user.first_name)
         try:
@@ -62,22 +67,42 @@ async def start(client, message):
             parse_mode=enums.ParseMode.HTML
         )
         return
-    btn = []
-    for channel in temp.AUTH_CHANNEL:
-        if not await is_subscribed(client, message, channel):
-            invite_link = await client.create_chat_invite_link(channel, creates_join_request=True)
-            chat = await client.get_chat(channel)
-            btn.append(
-                [InlineKeyboardButton(f"✇ Jᴏɪɴ {chat.title} ✇", url=invite_link.invite_link)]
-            )
-
-    if btn and message.command[1] != "subscribe":
-        btn.append([InlineKeyboardButton(" 🔄 Try Again", url=f"https://t.me/{temp.U_NAME}?start={message.command[1]}")])
-    if btn:
+    # Check user's language preference
+    
+    user_language = await db.get_user_language(message.from_user.id)
+    
+    if not user_language:
+        # User hasn't selected a language yet
+        language_buttons = await show_language_selection(client, message.from_user.id)
         await client.send_message(
             chat_id=message.from_user.id,
-            text="**Please Join My Updates Channel to use this Bot!**",
-            reply_markup=InlineKeyboardMarkup(btn),
+            text="🌐 **Welcome!** Please select your language to continue:\n\n"
+                 "You'll need to join 2 channels:\n"
+                 "1. Common Updates Channel (for all users)\n"
+                 "2. Language-specific Channel (for your chosen language)",
+            reply_markup=language_buttons,
+            parse_mode=enums.ParseMode.MARKDOWN
+        )
+        return
+    
+    # Check if user is subscribed to required channels
+    is_subscribed_all, missing_channels, _ = await check_user_subscriptions(client, message.from_user.id, user_language)
+    
+    if not is_subscribed_all:
+        # User needs to join channels
+        subscription_buttons = await create_subscription_buttons(
+            client, message.from_user.id, user_language, f"check_subscription_{user_language}"
+        )
+        
+        from language_config import get_language_display_name
+        await client.send_message(
+            chat_id=message.from_user.id,
+            text=f"🎯 **Your Language**: {get_language_display_name(user_language)}\n\n"
+                 "📋 **Required Channels:**\n"
+                 "1. Common Updates Channel (for all users)\n"
+                 f"2. {get_language_display_name(user_language)} Channel (for your language)\n\n"
+                 "Please join both channels to continue:",
+            reply_markup=subscription_buttons,
             parse_mode=enums.ParseMode.MARKDOWN
         )
         return
@@ -348,7 +373,7 @@ async def send_movie_with_subtitles(client, message, file_id, subtitle_language)
             subtitle_sent = False
             for i, subtitle in enumerate(subtitles[:1]):  # Send 1 subtitle file for now
                 try:
-                    subtitle_data = await subtitle_handler.download_subtitle(subtitle)
+                    subtitle_data = await subtitle_handler.download_subtitle(subtitle, client)
                     if subtitle_data:
                         # Create subtitle file
                         import tempfile
@@ -404,3 +429,249 @@ async def send_movie_with_subtitles(client, message, file_id, subtitle_language)
     finally:
         # Close subtitle handler session
         await subtitle_handler.close_session()
+
+@Client.on_message(filters.command("subtitle_stats") & filters.private & filters.user(ADMINS))
+async def subtitle_stats(client, message):
+    """Show subtitle statistics for admins"""
+    try:
+        from subtitle_channel_manager import subtitle_channel_manager
+        
+        stats = await subtitle_channel_manager.get_subtitle_stats(client)
+        
+        if stats:
+            stats_text = f"""📊 **Subtitle Statistics**
+
+📁 Total Subtitles: {stats.get('total_subtitles', 0)}
+🎬 Unique Movies: {stats.get('unique_movies', 0)}
+
+🗣️ **Languages:**
+"""
+            for lang, count in stats.get('languages', {}).items():
+                stats_text += f"• {lang.title()}: {count}\n"
+            
+            await message.reply(stats_text)
+        else:
+            await message.reply("❌ No subtitle statistics available")
+            
+    except Exception as e:
+        await message.reply(f"❌ Error getting statistics: {e}")
+
+@Client.on_message(filters.command("test_subtitle") & filters.private & filters.user(ADMINS))
+async def test_subtitle_download(client, message):
+    """Test subtitle download for admins"""
+    try:
+        # Parse command: /test_subtitle movie_name language
+        parts = message.text.split(maxsplit=2)
+        if len(parts) < 3:
+            await message.reply("Usage: /test_subtitle <movie_name> <language>\nExample: /test_subtitle KGF english")
+            return
+        
+        movie_name = parts[1]
+        language = parts[2]
+        
+        await message.reply(f"🔍 Testing subtitle download for:\n📽️ Movie: {movie_name}\n🗣️ Language: {language}")
+        
+        from subtitle_channel_manager import subtitle_channel_manager
+        
+        # Test subtitle download
+        subtitle_content = await subtitle_channel_manager.get_subtitle(client, movie_name, language)
+        
+        if subtitle_content:
+            # Create and send subtitle file
+            import tempfile
+            import os
+            
+            temp_dir = tempfile.gettempdir()
+            subtitle_filename = f"{movie_name.replace(' ', '_')}_{language}_test.srt"
+            temp_file = os.path.join(temp_dir, subtitle_filename)
+            
+            with open(temp_file, 'wb') as f:
+                f.write(subtitle_content)
+            
+            await client.send_document(
+                chat_id=message.chat.id,
+                document=temp_file,
+                file_name=subtitle_filename,
+                caption=f"✅ Test subtitle for {movie_name} ({language})\nSize: {len(subtitle_content)} bytes"
+            )
+            
+            os.remove(temp_file)
+        else:
+            await message.reply("❌ Failed to get subtitle")
+            
+    except Exception as e:
+        await message.reply(f"❌ Error testing subtitle: {e}")
+
+@Client.on_message(filters.command("api_limits") & filters.private & filters.user(ADMINS))
+async def check_api_limits(client, message):
+    """Check OpenSubtitles API usage and limits"""
+    try:
+        import aiohttp
+        from subtitle_config import OPENSUBTITLES_API_KEY
+        
+        if not OPENSUBTITLES_API_KEY:
+            await message.reply("❌ No OpenSubtitles API key configured")
+            return
+        
+        async with aiohttp.ClientSession() as session:
+            url = "https://api.opensubtitles.com/api/v1/infos/user"
+            headers = {
+                'Api-Key': OPENSUBTITLES_API_KEY,
+                'Content-Type': 'application/json',
+                'User-Agent': 'SubtitleBot v1.0'
+            }
+            
+            async with session.get(url, headers=headers) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    user_info = data.get('data', {})
+                    
+                    username = user_info.get('username', 'N/A')
+                    downloads_today = user_info.get('downloads_count', 0)
+                    downloads_limit = user_info.get('downloads_limit', 0)
+                    remaining = downloads_limit - downloads_today
+                    
+                    # Calculate percentage used
+                    if downloads_limit > 0:
+                        percentage = (downloads_today / downloads_limit) * 100
+                    else:
+                        percentage = 0
+                    
+                    status_text = f"""📊 **OpenSubtitles API Status**
+
+👤 **User**: {username}
+🔑 **API Key**: {OPENSUBTITLES_API_KEY[:8]}...
+
+📈 **Daily Limits**:
+• Downloaded today: {downloads_today}
+• Daily limit: {downloads_limit}
+• Remaining: {remaining}
+• Usage: {percentage:.1f}%
+
+{'🟢 Good' if percentage < 50 else '🟡 Moderate' if percentage < 80 else '🔴 High'} usage level
+
+💡 **Tips**:
+• Cached subtitles don't count toward limits
+• Limits reset daily at midnight UTC
+• Free accounts get 200 downloads/day"""
+                    
+                    await message.reply(status_text)
+                    
+                elif response.status == 401:
+                    await message.reply("❌ Invalid API key")
+                elif response.status == 403:
+                    await message.reply("❌ Access forbidden - check API key permissions")
+                else:
+                    await message.reply(f"❌ API error: Status {response.status}")
+                    
+    except Exception as e:
+        await message.reply(f"❌ Error checking API limits: {e}")
+
+@Client.on_message(filters.command("optimization_stats") & filters.private & filters.user(ADMINS))
+async def optimization_stats(client, message):
+    """Show optimization statistics"""
+    try:
+        from advanced_subtitle_optimizer import subtitle_optimizer
+        
+        stats = await subtitle_optimizer.get_optimization_stats()
+        
+        if stats:
+            stats_text = f"""🚀 **Subtitle Optimization Stats**
+
+📊 **Performance Metrics**:
+• Total requests: {stats.get('total_requests', 0)}
+• Cached subtitles: {stats.get('cached_subtitles', 0)}
+• Unique movies: {stats.get('unique_movies', 0)}
+• Cache hit ratio: {stats.get('cache_hit_ratio', 0):.1f}%
+
+🔑 **API Usage**:
+• Used today: {stats.get('api_usage_today', 0)}
+• Remaining: {stats.get('api_remaining', 0)}
+• Efficiency score: {stats.get('efficiency_score', 0):.1f}%
+
+💡 **Optimization Impact**:
+• API calls saved: ~{int(stats.get('total_requests', 0) - stats.get('api_usage_today', 0))}
+• User capacity multiplier: {stats.get('total_requests', 0) // max(stats.get('api_usage_today', 1), 1)}x
+
+🎯 **Performance Level**:
+{get_performance_emoji(stats.get('cache_hit_ratio', 0))} {get_performance_level(stats.get('cache_hit_ratio', 0))}"""
+            
+            await message.reply(stats_text)
+        else:
+            await message.reply("❌ No optimization statistics available")
+            
+    except Exception as e:
+        await message.reply(f"❌ Error getting optimization stats: {e}")
+
+@Client.on_message(filters.command("popular_movies") & filters.private & filters.user(ADMINS))
+async def show_popular_movies(client, message):
+    """Show most popular movies"""
+    try:
+        from advanced_subtitle_optimizer import subtitle_optimizer
+        
+        popular = await subtitle_optimizer.get_popular_movies(10)
+        
+        if popular:
+            movie_list = "🎬 **Most Popular Movies**\n\n"
+            for i, movie in enumerate(popular, 1):
+                movie_list += f"{i}. **{movie['movie_name']}**\n"
+                movie_list += f"   📊 Requests: {movie['request_count']}\n"
+                movie_list += f"   🗣️ Languages: {', '.join(movie.get('languages', []))}\n\n"
+            
+            await message.reply(movie_list)
+        else:
+            await message.reply("❌ No popular movies data available")
+            
+    except Exception as e:
+        await message.reply(f"❌ Error getting popular movies: {e}")
+
+@Client.on_message(filters.command("preload_suggestions") & filters.private & filters.user(ADMINS))
+async def preload_suggestions(client, message):
+    """Show suggestions for preloading subtitles"""
+    try:
+        from advanced_subtitle_optimizer import subtitle_optimizer
+        
+        suggestions = await subtitle_optimizer.suggest_preload_subtitles()
+        
+        if suggestions:
+            suggestion_text = "💡 **Preload Suggestions**\n\n"
+            suggestion_text += "These popular movies should be preloaded:\n\n"
+            
+            for i, suggestion in enumerate(suggestions[:10], 1):
+                suggestion_text += f"{i}. **{suggestion['movie_name']}** ({suggestion['language']})\n"
+                suggestion_text += f"   📊 Priority: {suggestion['priority']} requests\n\n"
+            
+            suggestion_text += "💭 Use `/test_subtitle MovieName language` to preload"
+            
+            await message.reply(suggestion_text)
+        else:
+            await message.reply("✅ No preload suggestions - cache is optimal!")
+            
+    except Exception as e:
+        await message.reply(f"❌ Error getting preload suggestions: {e}")
+
+def get_performance_emoji(ratio):
+    """Get emoji based on performance ratio"""
+    if ratio >= 80:
+        return "🚀"
+    elif ratio >= 60:
+        return "🔥"
+    elif ratio >= 40:
+        return "📈"
+    elif ratio >= 20:
+        return "⚡"
+    else:
+        return "🎯"
+
+def get_performance_level(ratio):
+    """Get performance level description"""
+    if ratio >= 80:
+        return "Excellent - Maximum efficiency!"
+    elif ratio >= 60:
+        return "Great - High efficiency"
+    elif ratio >= 40:
+        return "Good - Moderate efficiency"
+    elif ratio >= 20:
+        return "Fair - Building cache"
+    else:
+        return "Starting - Cache warming up"

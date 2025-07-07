@@ -78,7 +78,7 @@ class RealSubtitleHandler:
             session = await self.get_session()
             movie_info = self.extract_movie_info(movie_name)
             
-            # Language mapping
+            # Language mapping for OpenSubtitles
             lang_map = {
                 'english': 'en',
                 'korean': 'ko',
@@ -98,27 +98,32 @@ class RealSubtitleHandler:
             
             lang_code = lang_map.get(language.lower(), 'en')
             
-            # Use OpenSubtitles REST API (free)
+            # OpenSubtitles REST API endpoint
             url = "https://api.opensubtitles.com/api/v1/subtitles"
+            
+            # Headers for OpenSubtitles API
             headers = {
-                'User-Agent': 'MovieBot v1.0',
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'User-Agent': 'TemporaryUserAgent',
+                'Api-Key': ''  # You need to get a free API key from opensubtitles.com
             }
             
+            # Search parameters
             params = {
                 'query': movie_info['name'],
                 'languages': lang_code,
-                'type': 'movie'
+                'moviehash': '',
+                'imdb_id': ''
             }
             
-            if movie_info['year']:
-                params['year'] = movie_info['year']
-            
+            # Make API request
             async with session.get(url, params=params, headers=headers) as response:
                 if response.status == 200:
                     data = await response.json()
                     return self._parse_opensubtitles_response(data)
-                
+                else:
+                    logger.warning(f"OpenSubtitles API returned status {response.status}")
+                    
         except Exception as e:
             logger.error(f"OpenSubtitles search error: {e}")
         
@@ -188,10 +193,22 @@ class RealSubtitleHandler:
         
         return subtitles
     
-    async def download_subtitle(self, subtitle_info: Dict) -> Optional[bytes]:
-        """Download real subtitle file or create sample"""
+    async def download_subtitle(self, subtitle_info: Dict, client=None) -> Optional[bytes]:
+        """Download real subtitle file from channel or APIs"""
         try:
-            if subtitle_info['source'] == 'mock':
+            movie_name = subtitle_info.get('release', subtitle_info.get('filename', 'Movie'))
+            language = subtitle_info.get('language', 'english')
+            
+            # Use channel manager for subtitle handling
+            if client:
+                from subtitle_channel_manager import subtitle_channel_manager
+                subtitle_content = await subtitle_channel_manager.get_subtitle(client, movie_name, language)
+                if subtitle_content:
+                    logger.info(f"Got subtitle for {movie_name} in {language}")
+                    return subtitle_content
+            
+            # Fallback to mock content if real subtitles not available
+            if subtitle_info.get('source') == 'mock':
                 # Create realistic movie subtitle content
                 movie_name = subtitle_info['release'].split()[0] if subtitle_info['release'] else "Movie"
                 language = subtitle_info['language'].title()

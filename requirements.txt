@@ -1,7 +1,10 @@
-hydrogram
-pymongo
-cinemagoer
-psutil
-requests
-aiohttp
-aiofiles
+hydrogram==0.1.4
+pymongo==4.6.1
+motor==3.3.2
+cinemagoer==2023.5.1
+psutil==5.9.6
+requests==2.31.0
+aiohttp==3.9.1
+aiofiles==23.2.0
+python-dotenv==1.0.0
+dnspython==2.4.2

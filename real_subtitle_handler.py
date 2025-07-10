@@ -266,6 +266,40 @@ Subtítulos en español para {movie_name}
 {language} Subtitle - ¡Bot funcionando! ✅
 
 """
+                elif 'sinhala' in subtitle_info['language'].lower():
+                    sample_srt = f"""1
+00:00:01,000 --> 00:00:04,000
+අයුබෝවන් (Welcome)
+
+2
+00:00:05,500 --> 00:00:08,500
+මෙය {movie_name} සඳහා සිංහල උපසිරැසි
+
+3
+00:00:10,000 --> 00:00:13,000
+(This is Sinhala subtitle for {movie_name})
+
+4
+00:00:15,000 --> 00:00:18,000
+ක්‍රියාදාමය ආරම්භ වේ!
+
+5
+00:00:20,000 --> 00:00:23,000
+Action begins!
+
+6
+00:00:25,000 --> 00:00:28,000
+{language} උපසිරැසි - බොට් ක්‍රියාත්මකයි! ✅
+
+7
+00:00:30,000 --> 00:00:33,000
+චිත්‍රපටය: {subtitle_info['release']}
+
+8
+00:00:35,000 --> 00:00:38,000
+උපසිරැසි සමඟ චිත්‍රපටය අරඩන්න!
+
+"""
                 else:  # English and other languages
                     sample_srt = f"""1
 00:00:01,000 --> 00:00:04,000

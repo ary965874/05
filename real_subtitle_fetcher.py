@@ -89,7 +89,7 @@ class RealSubtitleFetcher:
                 'english': 'en', 'korean': 'ko', 'spanish': 'es', 'french': 'fr',
                 'german': 'de', 'italian': 'it', 'portuguese': 'pt', 'chinese': 'zh',
                 'japanese': 'ja', 'arabic': 'ar', 'hindi': 'hi', 'tamil': 'ta',
-                'malayalam': 'ml', 'telugu': 'te'
+                'malayalam': 'ml', 'telugu': 'te', 'sinhala': 'si'
             }
             
             lang_code = lang_map.get(language.lower(), 'en')
@@ -192,7 +192,7 @@ class RealSubtitleFetcher:
         return [
             'english', 'korean', 'spanish', 'french', 'german', 'italian',
             'portuguese', 'chinese', 'japanese', 'arabic', 'hindi', 'tamil',
-            'malayalam', 'telugu'
+            'malayalam', 'telugu', 'sinhala'
         ]
 
 # Create global instance

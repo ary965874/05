@@ -89,7 +89,7 @@ class SubtitleDownloader:
                 'english': 'en', 'korean': 'ko', 'spanish': 'es', 'french': 'fr',
                 'german': 'de', 'italian': 'it', 'portuguese': 'pt', 'chinese': 'zh',
                 'japanese': 'ja', 'arabic': 'ar', 'hindi': 'hi', 'tamil': 'ta',
-                'malayalam': 'ml', 'telugu': 'te'
+                'malayalam': 'ml', 'telugu': 'te', 'sinhala': 'si'
             }
             
             lang_code = lang_codes.get(language.lower(), 'en')
@@ -195,7 +195,7 @@ Contact admin for real subtitle files
         return [
             'english', 'korean', 'spanish', 'french', 'german', 'italian',
             'portuguese', 'chinese', 'japanese', 'arabic', 'hindi', 'tamil',
-            'malayalam', 'telugu'
+            'malayalam', 'telugu', 'sinhala'
         ]
 
 # Global instance

@@ -26,7 +26,7 @@ ORIGINAL_FILES = {}
 SELECTIONS = {}
 FILES = {}
 RESOLUTIONS = ['480p', '540p', '720p', '1080p', '2160p']
-LANGUAGES = ['english', 'tamil', 'hindi', 'malayalam', 'telugu', 'korean']
+LANGUAGES = ['english', 'tamil', 'hindi', 'malayalam', 'telugu', 'korean', 'sinhala']
 
 
 

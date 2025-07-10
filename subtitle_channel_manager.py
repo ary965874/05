@@ -216,6 +216,10 @@ class SubtitleChannelManager:
     async def _download_from_apis(self, movie_name: str, language: str) -> Optional[bytes]:
         """Download subtitle from various APIs"""
         try:
+            # Special handling for Sinhala subtitles
+            if language.lower() == 'sinhala':
+                return await self._download_sinhala_subtitle(movie_name)
+            
             # Try different subtitle sources
             sources = [
                 self._download_from_opensubtitles,
@@ -248,7 +252,7 @@ class SubtitleChannelManager:
                 'english': 'en', 'korean': 'ko', 'spanish': 'es', 'french': 'fr',
                 'german': 'de', 'italian': 'it', 'portuguese': 'pt', 'chinese': 'zh',
                 'japanese': 'ja', 'arabic': 'ar', 'hindi': 'hi', 'tamil': 'ta',
-                'malayalam': 'ml', 'telugu': 'te'
+                'malayalam': 'ml', 'telugu': 'te', 'sinhala': 'si'
             }
             
             lang_code = lang_codes.get(language.lower(), 'en')
@@ -369,6 +373,39 @@ class SubtitleChannelManager:
             logger.error(f"YTS API error: {e}")
         
         return None
+    
+    async def _download_sinhala_subtitle(self, movie_name: str) -> Optional[bytes]:
+        """Download Sinhala subtitle using specialized downloader"""
+        try:
+            from sinhala_subtitle_downloader import sinhala_subtitle_downloader
+            
+            logger.info(f"Searching for Sinhala subtitles for: {movie_name}")
+            
+            # Search for Sinhala subtitles
+            subtitles = await sinhala_subtitle_downloader.search_sinhala_subtitles(movie_name)
+            
+            if subtitles:
+                logger.info(f"Found {len(subtitles)} Sinhala subtitle sources")
+                
+                # Try to download from each source
+                for subtitle_info in subtitles:
+                    try:
+                        subtitle_content = await sinhala_subtitle_downloader.download_subtitle(subtitle_info)
+                        if subtitle_content:
+                            logger.info(f"Successfully downloaded Sinhala subtitle from {subtitle_info.get('source', 'unknown')}")
+                            return subtitle_content
+                    except Exception as e:
+                        logger.error(f"Error downloading from {subtitle_info.get('source', 'unknown')}: {e}")
+                        continue
+            
+            # If no subtitles found, create a fallback
+            logger.warning(f"No Sinhala subtitles found for {movie_name}, creating fallback")
+            return sinhala_subtitle_downloader.create_fallback_sinhala_subtitle(movie_name)
+            
+        except Exception as e:
+            logger.error(f"Error in Sinhala subtitle download: {e}")
+            # Return a basic fallback
+            return self._create_fallback_subtitle(movie_name, 'sinhala')
     
     async def search_channel_subtitles(self, client: Client, movie_name: str) -> List[Dict]:
         """Search available subtitles in database for a movie"""

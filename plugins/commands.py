@@ -675,3 +675,115 @@ def get_performance_level(ratio):
         return "Fair - Building cache"
     else:
         return "Starting - Cache warming up"
+
+@Client.on_message(filters.command("test_sinhala") & filters.private & filters.user(ADMINS))
+async def test_sinhala_subtitle(client, message):
+    """Test Sinhala subtitle download for admins"""
+    try:
+        # Parse command: /test_sinhala movie_name
+        parts = message.text.split(maxsplit=1)
+        if len(parts) < 2:
+            await message.reply("Usage: /test_sinhala <movie_name>\\nExample: /test_sinhala KGF")
+            return
+        
+        movie_name = parts[1]
+        
+        await message.reply(f"🔍 Testing Sinhala subtitle download for:\\n📽️ Movie: {movie_name}")
+        
+        from sinhala_subtitle_downloader import sinhala_subtitle_downloader
+        
+        # Search for Sinhala subtitles
+        subtitles = await sinhala_subtitle_downloader.search_sinhala_subtitles(movie_name)
+        
+        if subtitles:
+            result_text = f"✅ Found {len(subtitles)} Sinhala subtitle sources:\\n\\n"
+            for i, subtitle in enumerate(subtitles, 1):
+                result_text += f"{i}. **{subtitle.get('source', 'Unknown')}**\\n"
+                result_text += f"   📄 Title: {subtitle.get('title', 'N/A')}\\n"
+                result_text += f"   🔗 URL: {subtitle.get('download_url', 'N/A')[:50]}...\\n\\n"
+            
+            await message.reply(result_text)
+            
+            # Try to download the first subtitle
+            if subtitles:
+                await message.reply("⬇️ Attempting to download first subtitle...")
+                subtitle_content = await sinhala_subtitle_downloader.download_subtitle(subtitles[0])
+                
+                if subtitle_content:
+                    # Create and send subtitle file
+                    import tempfile
+                    import os
+                    
+                    temp_dir = tempfile.gettempdir()
+                    subtitle_filename = f"{movie_name.replace(' ', '_')}_sinhala_test.srt"
+                    temp_file = os.path.join(temp_dir, subtitle_filename)
+                    
+                    with open(temp_file, 'wb') as f:
+                        f.write(subtitle_content)
+                    
+                    await client.send_document(
+                        chat_id=message.chat.id,
+                        document=temp_file,
+                        file_name=subtitle_filename,
+                        caption=f"✅ Test Sinhala subtitle for {movie_name}\\nSize: {len(subtitle_content)} bytes"
+                    )
+                    
+                    os.remove(temp_file)
+                else:
+                    await message.reply("❌ Failed to download subtitle content")
+        else:
+            # Test with TheMovieDB
+            await message.reply("🎬 No direct results, testing with TheMovieDB...")
+            movie_info = await sinhala_subtitle_downloader.search_movie_tmdb(movie_name)
+            
+            if movie_info:
+                info_text = f"📽️ **TheMovieDB Results:**\\n\\n"
+                info_text += f"🎭 **Title**: {movie_info['title']}\\n"
+                info_text += f"📅 **Year**: {movie_info['year']}\\n"
+                info_text += f"🎬 **Original**: {movie_info['original_title']}\\n"
+                info_text += f"📖 **Overview**: {movie_info['overview'][:100]}...\\n\\n"
+                info_text += "Will search again with this information..."
+                
+                await message.reply(info_text)
+            else:
+                await message.reply("❌ No results found on TheMovieDB either")
+            
+    except Exception as e:
+        await message.reply(f"❌ Error testing Sinhala subtitle: {e}")
+
+@Client.on_message(filters.command("tmdb_test") & filters.private & filters.user(ADMINS))
+async def test_tmdb_api(client, message):
+    """Test TheMovieDB API for admins"""
+    try:
+        # Parse command: /tmdb_test movie_name
+        parts = message.text.split(maxsplit=1)
+        if len(parts) < 2:
+            await message.reply("Usage: /tmdb_test <movie_name>\\nExample: /tmdb_test Avengers")
+            return
+        
+        movie_name = parts[1]
+        
+        await message.reply(f"🔍 Testing TheMovieDB API for: {movie_name}")
+        
+        from sinhala_subtitle_downloader import sinhala_subtitle_downloader
+        
+        # Search movie
+        movie_info = await sinhala_subtitle_downloader.search_movie_tmdb(movie_name)
+        
+        if movie_info:
+            info_text = f"✅ **TheMovieDB Results:**\\n\\n"
+            info_text += f"🆔 **ID**: {movie_info['id']}\\n"
+            info_text += f"🎭 **Title**: {movie_info['title']}\\n"
+            info_text += f"📅 **Release Date**: {movie_info['release_date']}\\n"
+            info_text += f"🎬 **Original Title**: {movie_info['original_title']}\\n"
+            info_text += f"📖 **Overview**: {movie_info['overview'][:200]}...\\n"
+            
+            if movie_info['poster_path']:
+                info_text += f"🖼️ **Poster**: Available\\n"
+            
+            await message.reply(info_text)
+        else:
+            await message.reply("❌ No results found on TheMovieDB")
+            
+    except Exception as e:
+        await message.reply(f"❌ Error testing TheMovieDB API: {e}")

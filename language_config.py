@@ -90,6 +90,12 @@ LANGUAGE_CHANNELS = {
         'channel': '-1002822738923',
         'display_name': 'Telugu',
         'flag': '🇮🇳'
+    },
+    
+    'sinhala': {
+        'channel': '-1002614174192',  # Using common channel for now, replace with dedicated Sinhala channel ID
+        'display_name': 'Sinhala',
+        'flag': '🇱🇰'
     }
 }
 

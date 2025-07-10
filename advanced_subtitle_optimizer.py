@@ -148,7 +148,7 @@ class SubtitleOptimizer:
                 movie_key = movie['movie_key']
                 
                 # Check if we have cached subtitles for popular languages
-                for lang in ['english', 'spanish', 'french', 'german']:
+                for lang in ['english', 'spanish', 'french', 'german', 'sinhala']:
                     cached = db.db.subtitles.find_one({
                         'movie_name': {'$regex': movie_key, '$options': 'i'},
                         'language': lang

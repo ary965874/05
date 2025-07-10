@@ -369,7 +369,7 @@ async def handle_file_button_after_subscription(client: Client, query, file_id: 
     """Handle file button click after subscription verification"""
     try:
         from database.ia_filterdb import get_file_details
-        from real_subtitle_handler import real_subtitle_handler as subtitle_handler
+        # from real_subtitle_handler import real_subtitle_handler as subtitle_handler  # Not needed here
         from language_config import get_language_display_name
         from hydrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
         

@@ -96,7 +96,8 @@ class SubtitleHandler:
                 'hindi': 'hi',
                 'tamil': 'ta',
                 'malayalam': 'ml',
-                'telugu': 'te'
+                'telugu': 'te',
+                'sinhala': 'si'
             }
             
             lang_code = lang_map.get(language.lower(), 'en')

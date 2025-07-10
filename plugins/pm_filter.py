@@ -310,7 +310,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
     if query.data == "close_data":
         await query.message.delete()
 
-    elif query.data.startswith("file"):
+    elif query.data.startswith("files"):
         ident, file_id = query.data.split("#")
         
         # Check channel subscriptions before showing file options

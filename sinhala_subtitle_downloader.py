@@ -200,16 +200,30 @@ class SinhalaSubtitleDownloader:
                         if response.status == 200:
                             html = await response.text()
                             
-                            # Basic subtitle link detection (this would need real website analysis)
-                            if 'sinhala' in html.lower() or 'subtitle' in html.lower():
-                                # Create a mock result for testing
-                                return [{
-                                    'title': f"{clean_name} - Sinhala Subtitle",
-                                    'source': 'Baiscope',
-                                    'download_url': f"https://baiscope.com/download/{quote(clean_name)}.srt",
-                                    'language': 'sinhala',
-                                    'quality': 'good'
-                                }]
+                            # Look for actual Sinhala subtitle links
+                            from bs4 import BeautifulSoup
+                            soup = BeautifulSoup(html, 'html.parser')
+                            
+                            # Look for download links (this would need to be customized per website)
+                            subtitle_links = soup.find_all('a', href=True)
+                            results = []
+                            
+                            for link in subtitle_links:
+                                href = link.get('href', '')
+                                text = link.get_text().lower()
+                                
+                                # Look for Sinhala subtitle indicators
+                                if any(keyword in text for keyword in ['sinhala', 'subtitle', 'download', '.srt', 'උපසිරසි']):
+                                    if href.endswith('.srt') or 'subtitle' in href:
+                                        results.append({
+                                            'title': f"{clean_name} - Sinhala Subtitle",
+                                            'source': 'Baiscope',
+                                            'download_url': href if href.startswith('http') else f"https://baiscope.com{href}",
+                                            'language': 'sinhala',
+                                            'quality': 'good'
+                                        })
+                            
+                            return results[:3]  # Return up to 3 results
                                 
                 except Exception as e:
                     logger.error(f"Error with query '{query}': {e}")

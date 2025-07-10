@@ -357,13 +357,20 @@ async def cb_handler(client: Client, query: CallbackQuery):
         file_details = await get_file_details(file_id)
         if file_details:
             # Show subtitle language selection
-            subtitle_languages = subtitle_handler.get_supported_languages()
+            from language_config import get_all_languages
+            subtitle_languages = get_all_languages()  # Use language_config for consistency
             btn = []
             
-            # Add subtitle language options
-            for lang in subtitle_languages[:8]:  # Show first 8 languages
-                display_name = get_language_display_name(lang)
-                btn.append([InlineKeyboardButton(f"{display_name}", callback_data=f"subtitle#{file_id}#{lang}")])
+            # Add subtitle language options - show all languages in rows of 2
+            for i in range(0, len(subtitle_languages), 2):
+                row = []
+                for j in range(2):
+                    if i + j < len(subtitle_languages):
+                        lang = subtitle_languages[i + j]
+                        display_name = get_language_display_name(lang)
+                        row.append(InlineKeyboardButton(f"{display_name}", callback_data=f"subtitle#{file_id}#{lang}"))
+                if row:  # Only add row if it has buttons
+                    btn.append(row)
             
             # Add "No Subtitles" option
             btn.append([InlineKeyboardButton("🚫 No Subtitles Needed", callback_data=f"no_sub#{file_id}")])
